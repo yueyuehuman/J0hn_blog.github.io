@@ -111,22 +111,22 @@
 <p><code>phpinfo();</code></p>
 <p><code>?&gt;</code></p>
 <p>然后打开浏览器输入：<code>http://localhost/info.php</code>看看成功没</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-4f6aeda7b04903c0.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-89fc3ac64bfc8b09.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <h4 id="安装drupal"><a href="#安装drupal" class="headerlink" title="安装drupal"></a>安装drupal</h4><p>输入<code>wget https://ftp.drupal.org/files/projects/drupal‐8.5.6.tar.gz</code></p>
 <p>然后解压<code>tar -zxvf drupal-8.5.6.tar.gz -C /var/www/html</code></p>
 <p>注意一定要把drupal所有文件与html目录下文件放一起，不然后面会出现404！！！</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/22101929-b11519da8735ebf6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
 <p>然后打开网页，输入<code>http://localhost/index.php</code>进入安装界面</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-5222275947915b55.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-fdad38e96085f02c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>为了避免玄学错误，我直接用的英语，可是没想到还是有错！！！经过一番谷歌搜索，解决了！</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/22101929-2e695baccc44ff70.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
 <p>在/var/www/html目录下，打开terminal，输入：<br><code>mkdir sites/default/files</code><br><code>mkdir sites/default/files/translations</code><br>确保写的权限：<br><code>chmod 777 sites/default/files</code><br><code>chmod 777 sites/default/files/translations</code></p>
 <p>成功！可以选择安装方式了，按照默认的走……结果又双叒叕有问题！</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-21a58ef836c6e57a.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-0808986c1050959f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>继续踩坑埋坑过程。。。</p>
 <p><code>cp ./sites/default/default.settings.php ./sites/default/settings.php</code><br><code>chmod a+w ./sites/default/settings.php</code></p>
 <p>这样做Error解决了，Warning……就放着吧，无伤大雅……然后就可以配置数据库，wait！是不是前面那么多步都没有配置mysql，根本木有这些信息啊！没事那就先回过去弄一下mysql</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-f317ec36d10014c4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-dcf58591d5b68e92.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>输入<code>mysql -u root -p XXX</code>这个是你安装mysql时候就设置的，别忘了，忘了我也没招</p>
 <p>然后你可以看到bash变成了mysql，说明你可以用root权限配置数据库啦：</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/22101929-9c62d2801c119995.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
@@ -134,18 +134,18 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CREATE DATABASE drupal DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;</span><br><span class="line">GRANT ALL ON drupal.* TO &#39;drupal&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;drupal&#39;;</span><br><span class="line">FLUSH PRIVILEGES;</span><br></pre></td></tr></table></figure>
 
 <p>然后回到安装界面，输入相应的参数：</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-7defa5cb2fd39309.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-2708cd09f833ed62.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>最后打开<code>http://localhost\drupal-8.5.6</code></p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-59ef6e0e41f36b05.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-704a838085193cd5.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <h3 id="复现过程-1"><a href="#复现过程-1" class="headerlink" title="复现过程"></a>复现过程</h3><p>我下载的是thezdi大佬构造的图片poc，为什么是图片？因为drupal是一个cms，很多时候就是博客之类的，博客平台大概率不会让你传.php/.jsp之类的文件吧，但是博客还有图片评论似乎是博客平台必不可少的</p>
 <p><code>https://github.com/thezdi/PoC/tree/master/Drupal</code></p>
 <p>然后点开root→edit profile，在下面有个上传图片的位置，上传该图片</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-a68626298b0f0d97.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-88c2d51b23e31562.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>然后点击manage进入首页config→media→file-system，可以看到一个临时文件位置</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-4136482a3048d9dc.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-a745249cfc8cf0b1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>输入<code>phar://./sites/default/files/pictures/2020-03/blogZDI-CAN-7232-cat.jpg</code></p>
 <p>注意2020-03是因为我是这个月复现的，drupal有套上传文件规则，即文件默认存储在./sites/defaulte/files/pictures/YEAR-XX（月份）/filename</p>
-<p><img src="https://upload-images.jianshu.io/upload_images/22101929-d2767e300c01d1ba.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
+<p><img src="https://upload-images.jianshu.io/upload_images/22101929-b13a4c386808f470.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
 <p>执行结果如下，可以看到上边的字符清晰地记录着我的ubuntu的用户名和口令，很明显是执行了</p>
 <p><code>cat /etc/passwd</code>的命令，但是为什么能达到这个效果呢，我用ultraEdit打开了poc文件，在这个位置发现了猫腻</p>
 <p><img src="https://upload-images.jianshu.io/upload_images/22101929-9694e2bda3490fbd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="img"></p>
@@ -157,7 +157,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/09/Poc%20of%20CVE-2019-6339/" data-id="ck7kjhncl0000wwb35egn2o7u" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/09/Poc%20of%20CVE-2019-6339/" data-id="ck7kkexfo0000u8b33jvo99c4" class="article-share-link">Share</a>
       
       
     </footer>
@@ -252,7 +252,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/Poc%20of%20CVE-2020-1938/" data-id="ck7h65n4h00080ob312g93932" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/Poc%20of%20CVE-2020-1938/" data-id="ck7kkexfo0001u8b35mlo9phc" class="article-share-link">Share</a>
       
       
     </footer>
@@ -384,7 +384,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/Poc%20of%20CVE-2020-0688/" data-id="ck7h65n4g00050ob36o4l46zw" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/Poc%20of%20CVE-2020-0688/" data-id="ck7kkexfo0002u8b35qibdwa9" class="article-share-link">Share</a>
       
       
     </footer>
@@ -433,7 +433,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/hello-world/" data-id="ck7h65n4c00010ob3btt6bg9c" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/03/07/hello-world/" data-id="ck7kkexg40004u8b39ph14l6d" class="article-share-link">Share</a>
       
       
     </footer>
@@ -478,7 +478,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/26/Algorithmic%20bias/" data-id="ck7h65n4500000ob300n87fic" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/26/Algorithmic%20bias/" data-id="ck7kkexg40003u8b32mpjc03q" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/J0hn_blog.github.io/tags/algorithmic-bias/" rel="tag">algorithmic bias</a></li></ul>
@@ -569,7 +569,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/15/How%20to%20embellish%20your%20blog/" data-id="ck7h65n4e00030ob3hbjm3kks" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/15/How%20to%20embellish%20your%20blog/" data-id="ck7kkexg40006u8b394221rcd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/J0hn_blog.github.io/tags/blog/" rel="tag">blog</a></li></ul>
@@ -657,7 +657,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/14/Github_pages+hexo%20to%20start%20up%20your%20blog/" data-id="ck7h65n4f00040ob3er88b9py" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/14/Github_pages+hexo%20to%20start%20up%20your%20blog/" data-id="ck7kkexgj000au8b31b151atz" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/J0hn_blog.github.io/tags/blog/" rel="tag">blog</a></li></ul>
@@ -721,7 +721,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/12/vultr+ss/" data-id="ck7h65n4p000c0ob32ua7hm89" class="article-share-link">Share</a>
+      <a data-url="https://yueyuehuman.github.io/J0hn_blog.github.io/2020/02/12/vultr+ss/" data-id="ck7kkexgj000cu8b34fuo40dc" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/J0hn_blog.github.io/tags/vps-shadowsocks/" rel="tag">vps shadowsocks</a></li></ul>
